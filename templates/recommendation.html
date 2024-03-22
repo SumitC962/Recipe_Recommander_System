@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Recommendation</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: url('/static/images/background1.jpg') center/cover no-repeat fixed;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+        .info{
+            margin: 30px;
+            background-color: #ffffff;
+            border: 1px solid black;
+            border-radius: 25px;
+            opacity: 0.6;
+        }
+
+        h1 {
+            color:black;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            color:black;
+        }
+
+        p {
+            color:black;
+            margin-bottom: 10px;
+        }
+
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="info" >
+        <h1>Recipe Recommendation</h1>
+
+        <h2>{{ recommended_recipe['name'] }}</h2>
+        <p><strong>ingredients:</strong> {{ recommended_recipe['ingredients'] }}</p>
+        <p><strong>Steps:</strong> {{ recommended_recipe['steps'] }}</p>
+        <p><strong>URL: </strong><a href="{{ recommended_recipe.url }}" target="_blank">{{ recommended_recipe.url }}</a></p>
+        
+        <!-- Add the audio button -->
+       <button id="audioButton">Play Audio</button>
+
+       <button id="likeButton">Like Recipe</button>
+    </div>
+    
+
+    <script>
+        document.getElementById('likeButton').addEventListener('click', function() {
+            // Get the recipe ID from the recommended recipe
+            var recipeId = {{ recommended_recipe.recommended_index }};
+
+            // Make an AJAX request to the Flask route to handle liking the recipe
+            fetch('/like_recipe/' + recipeId, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    alert('Recipe Liked!');  // You can customize this feedback
+                })
+                .catch(error => console.error('Error:', error));
+        });
+
+        document.getElementById('audioButton').addEventListener('click', function() {
+            // Call the /play_audio route to initiate audio playback
+            fetch('/play_audio')
+                .then(response => response.json())
+                .then(data => console.log(data))
+                .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html> 
+

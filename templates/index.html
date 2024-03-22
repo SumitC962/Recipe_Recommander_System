@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/static/images/background.avif">
+    <title>Recipe Recommendation</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: url('/static/images/background.jpg') center/cover no-repeat fixed; /* Replace '/static/images/background.jpg' with the path to your background image */
+            color: white;
+            text-align: center;
+        }
+
+        header {
+            background-color: rgba(0, 0, 0, 0.7); /* Adjust the opacity as needed */
+            padding: 20px;
+        }
+
+        h1 {
+            color: #fff;
+        }
+
+        nav {
+            margin-top: 20px;
+        }
+
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            padding: 10px;
+            margin: 0 10px;
+        }
+
+        nav a:hover {
+            background-color: rgba(255, 255, 255, 0.2); /* Adjust the opacity as needed */
+            border-radius: 4px;
+        }
+
+        /* Styling for the recommendationForm */
+        #recommendationForm {
+            max-width: 400px;
+            margin: 50px auto;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            text-align: left;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #4caf50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .home-button {
+            display: inline-block;
+            background-color: #4caf50;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+
+        .home-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg">
+        
+    </div>
+    <header>
+        <h1>Recipe Recommendation</h1>
+        <nav>
+            <a href="/">Home</a>
+            <a href="/about">About Us</a>
+            <a href="/signup">Sign Up</a>
+            <a href="/login">Login</a>
+            <a href="/dashboard">Dashboard</a>
+        </nav>
+    </header>
+
+    <!-- Styling for the recommendationForm -->
+    <form id="recommendationForm">
+        <label for="ingredients">Enter ingredients (comma-separated):</label>
+        <input type="text" id="ingredients" name="ingredients" required>
+        <button type="button" onclick="redirectToRecommendation()">Get Recommendation</button>
+    </form>
+
+
+    <script>
+        function redirectToRecommendation() {
+            var ingredientsInput = document.getElementById("ingredients").value;
+            window.location.href = '/recommendation?ingredients=' + encodeURIComponent(ingredientsInput);
+        }
+    </script>
+</body>
+</html>

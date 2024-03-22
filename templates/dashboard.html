@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .container {
+            text-align: center;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            box-sizing: border-box;
+        }
+
+        .user-details {
+            margin-bottom: 20px;
+        }
+
+
+        .logout-btn {
+            margin-top: 20px;
+            background-color: #ff5757;
+            color: #ffffff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome, {{ user.name }}!</h1>
+        
+        <div class="user-details">
+            <p>Email: {{ user.email }}</p>
+            <p>Phone: {{ user.phone }}</p>
+            <!-- Add additional user details as needed -->
+        </div>
+
+        <!-- Your dashboard content here -->
+        <div class="dashboard-content">
+            <!-- Add content specific to the dashboard -->
+            <p>This is our dashboard..</p>
+        </div>
+
+        
+        <h3>Liked Recipes:</h3>
+        <ul id="likedRecipesList">
+            <!-- Liked recipes will be dynamically added here using JavaScript -->
+        </ul>
+
+        <p id="noLikedRecipesMessage"></p>
+
+        <script>
+            // JavaScript code to dynamically populate the dashboard content
+            var user = {{ user | tojson }};
+            var likedRecipes = {{ liked_recipes | tojson }};
+
+            // Display welcome message
+            document.getElementById('welcomeMessage').innerText = 'Welcome, ' + user.name + '!';
+
+            // Display liked recipes
+            var likedRecipesList = document.getElementById('likedRecipesList');
+            var noLikedRecipesMessage = document.getElementById('noLikedRecipesMessage');
+
+            if (likedRecipes.length > 0) {
+                likedRecipes.forEach(function(likedRecipe) {
+                    var listItem = document.createElement('li');
+                    listItem.innerHTML = '<strong>' + likedRecipe.recipe.name + '</strong><br>' +
+                        'Ingredients: ' + likedRecipe.recipe.ingredients + '<br>' +
+                        'Steps: ' + likedRecipe.recipe.steps + '<br>' +
+                        '<a href="' + likedRecipe.recipe.url + '" target="_blank">URL</a>';
+                    likedRecipesList.appendChild(listItem);
+                });
+            } else {
+                noLikedRecipesMessage.innerText = 'No liked recipes yet.';
+            }
+        </script>
+
+        <!-- Logout button -->
+        <form action="{{ url_for('logout') }}" method="post">
+            <button type="submit" class="logout-btn">Logout</button>
+        </form>
+        <p>Or try our <a href="/">Recipes</a></p>
+    </div>
+</body>
+</html>
