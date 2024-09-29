@@ -33,3 +33,18 @@ Make sure you have the following installed:
    ```bash
    git clone https://github.com/SumitC962/recipe-recommender.git
    cd recipe-recommender
+
+## Install the required dependencies:
+ pip install -r requirements.txt
+
+## Set up the MySQL database:
+
+Create a new MySQL database called recipe.
+Update the database connection string in the app.
+config['SQLALCHEMY_DATABASE_URI'] line inside app.py with your MySQL credentials.
+
+## Run the Flask app:
+python app.py
+
+
+
