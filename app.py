@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template,jsonify, redirect, url_for, flash, session
+from flask import Flask, request, render_template, jsonify, redirect, url_for, flash, session
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 import pandas as pd
@@ -8,56 +8,37 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
-
-# Read data from CSV file into a DataFrame
-recipe_df = pd.read_csv('recipes1.csv')
-
-# Create a TfidfVectorizer to convert ingredients to a TF-IDF representation
-vectorizer = TfidfVectorizer()
-ingredients_matrix = vectorizer.fit_transform(recipe_df['ingredients'].apply(lambda x: ', '.join(x.split(', '))))
-
-def recommend_recipe(available_ingredients, recipe, vectorizer):
-    # Convert available ingredients to a TF-IDF representation
-    input_vector = vectorizer.transform([' '.join(available_ingredients)])
-
-    # Calculate cosine similarity between input and all recipes
-    cosine_similarities = linear_kernel(input_vector, ingredients_matrix).flatten()
-
-    # Get the index of the most similar recipe
-    recommended_index = cosine_similarities.argmax()
-
-    # Get the recommended recipe
-    recommended_recipe = recipe.iloc[recommended_index]
-
-    return recommended_recipe
-
-
+# Configuration for database and session management
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:@localhost/recipe'
-app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SECRET_KEY'] = ' '
 db = SQLAlchemy(app)
 
+# Load recipe data from a CSV file into a DataFrame
+recipe_df = pd.read_csv('recipes.csv')
+
+# Vectorize ingredients using TF-IDF
+vectorizer = TfidfVectorizer()
+ingredients_matrix = vectorizer.fit_transform(
+    recipe_df['ingredients'].apply(lambda x: ', '.join(x.split(', ')))
+)
+
+# User signup model for database interaction
 class SignUp(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
     phone = db.Column(db.String(12), nullable=False)
     email = db.Column(db.String(50), nullable=False, unique=True)
     username = db.Column(db.String(12), nullable=True, unique=True)
-    password = db.Column(db.String(20), nullable=False) 
+    password = db.Column(db.String(20), nullable=False)
 
-class LikedRecipe(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('sign_up.id'), nullable=False)
-    recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'), nullable=False)
-    created_at = db.Column(db.DateTime, nullable=False)
-
-    # Define a relationship to the Recipe model
-    recipe = db.relationship('Recipe', backref='liked_recipes', lazy=True)
-
-
+# Index route - redirects to signup if not logged in
 @app.route('/')
 def index():
+    if 'user_id' not in session:
+        return redirect(url_for('signup'))
     return render_template('index.html')
 
+# User signup route
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
@@ -67,27 +48,25 @@ def signup():
         username = request.form.get('username')
         password = request.form.get('password')
 
-        # Check if the username or email already exists
         if SignUp.query.filter((SignUp.username == username) | (SignUp.email == email)).first():
             flash('Username or email already exists. Please choose a different one.', 'danger')
         else:
-            # Save user data to the database (without hashing the password)
             new_user = SignUp(name=name, phone=phone, email=email, username=username, password=password)
             db.session.add(new_user)
-
             try:
                 db.session.commit()
                 flash('Registration successful!', 'success')
-                return redirect(url_for('index'))  # Redirect to index after successful signup
+                session['user_id'] = new_user.id  # Log the user in after signup
+                return redirect(url_for('index'))
             except Exception as e:
                 db.session.rollback()
                 flash('Error during registration. Please try again.', 'danger')
 
     return render_template('signup.html')
 
+# User login route
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    # Check if the user is already logged in
     if 'user_id' in session:
         flash('You are already logged in.', 'info')
         return redirect(url_for('dashboard'))
@@ -97,88 +76,74 @@ def login():
         password = request.form.get('password')
 
         user = SignUp.query.filter_by(username=username, password=password).first()
-
         if user:
-            # Set the user information in the session
             session['user_id'] = user.id
             flash('Login successful!', 'success')
             return redirect(url_for('dashboard'))
         else:
-            # Incorrect username or password
             flash('Invalid username or password. Please try again.', 'danger')
 
     return render_template('login.html')
 
+# Dashboard route for logged-in users
 @app.route('/dashboard')
 def dashboard():
     user_id = session.get('user_id')
     if user_id:
         user = SignUp.query.get(user_id)
         if user:
-            # Retrieve liked recipes for the user
-            liked_recipes = LikedRecipe.query.filter_by(user_id=user_id).all()
-            return render_template('dashboard.html', user=user, liked_recipes=liked_recipes)
+            return render_template('dashboard.html', user=user)
+
     flash('User not found', 'danger')
     return redirect(url_for('login'))
 
-
-@app.route('/about')
-def about():
-    return render_template('about.html')
-
-
+# Logout route
 @app.route('/logout', methods=['POST'])
 def logout():
-    # Clear the user information from the session
     session.pop('user_id', None)
     flash('You have been logged out.', 'info')
-    return redirect(url_for('index'))
+    return redirect(url_for('signup'))
 
-@app.route('/like_recipe/<int:recipe_id>', methods=['POST'])
-def like_recipe(recipe_id):
-    try:
-        user_id = session.get('user_id')
-
-        # Check if the user is logged in
-        if not user_id:
-            return jsonify({'error': 'User not logged in'}), 401
-
-        # Check if the recipe ID is valid
-        if recipe_id not in recipe_df.index:
-            return jsonify({'error': 'Invalid recipe ID'}), 400
-
-        # Check if the recipe is already liked by the user
-        if LikedRecipe.query.filter_by(user_id=user_id, recipe_id=recipe_id).first():
-            return jsonify({'message': 'Recipe already liked'})
-
-        # Add the liked recipe to the database
-        liked_recipe = LikedRecipe(user_id=user_id, recipe_id=recipe_id)
-        db.session.add(liked_recipe)
-        db.session.commit()
-
-        return jsonify({'message': 'Recipe liked successfully'})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
+# Recommendation route
 @app.route('/recommendation', methods=['GET'])
 def get_recommendation():
     try:
-        ingredients_input = request.args.get('ingredients', '')
-        available_ingredients = ingredients_input.split(',')
+        ingredients_input = request.args.get('ingredients', '').strip()
+
+        # Validate input: Check if ingredients are provided
+        if not ingredients_input:
+            return jsonify({'error': 'Please provide a valid list of ingredients.'}), 400
+
+        available_ingredients = [ingredient.strip() for ingredient in ingredients_input.split(',') if ingredient.strip()]
 
         if not available_ingredients:
-            return jsonify({'error': 'Please provide a list of ingredients.'}), 400
+            return jsonify({'error': 'No valid ingredients provided.'}), 400
 
-        recommended_recipe = recommend_recipe(available_ingredients, recipe_df, vectorizer)
+        # Convert input ingredients to TF-IDF vector
+        input_vector = vectorizer.transform([' '.join(available_ingredients)])
 
-        #Generate text for recommendation
-        recommendation_text = f"The recommended recipe is {recommended_recipe['name']} with ingredients {recommended_recipe['ingredients']} and steps for this recipe is {recommended_recipe['steps']}."
+        # Compute cosine similarities
+        cosine_similarities = linear_kernel(input_vector, ingredients_matrix).flatten()
 
-        # Convert text to speech
+        # Check if a matching recipe exists
+        if cosine_similarities.max() == 0:
+            return jsonify({'error': 'No matching recipe found for the given ingredients.'}), 404
+
+        # Get the most similar recipe
+        recommended_index = cosine_similarities.argmax()
+        recommended_recipe = recipe_df.iloc[recommended_index]
+
+        # Generate recommendation text
+        recommendation_text = (
+            f"The recommended recipe is {recommended_recipe['name']} with ingredients "
+            f"{recommended_recipe['ingredients']} and steps: {recommended_recipe['steps']}."
+        )
+
+        # Convert recommendation text to speech
         tts = gTTS(text=recommendation_text, lang='en')
         tts.save('recommendation.mp3')
 
-        # Play the generated speech
+        # Play the audio file
         os.system('start recommendation.mp3')
 
         return render_template('recommendation.html', recommended_recipe=recommended_recipe)
@@ -186,32 +151,10 @@ def get_recommendation():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# About route
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
 if __name__ == "__main__":
     app.run(debug=True)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
